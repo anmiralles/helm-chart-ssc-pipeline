@@ -1,0 +1,33 @@
+# Default values for helm-chart-ssc-pipeline.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  host: apps.cluster-8n7zx.8n7zx.sandbox2467.opentlc.com
+  namespace: ci
+  registry:
+    server: quay.io
+    user: rh-ee-amiralle
+  workspaces:
+    pvcWorkspace: shared-workspace
+
+rox:
+  central:
+    endpoint: central-stackrox.apps.cluster-8n7zx.8n7zx.sandbox2467.opentlc.com:443
+
+cyclonedx:
+  url: https://cyclonedx-bom-repo-server-cyclonedx.apps.cluster-8n7zx.8n7zx.sandbox2467.opentlc.com
+              
+
+storage:
+  pvc:
+    create: true
+    accessMode: ReadWriteOnce
+    resources: 1Gi
+
+image:
+  name: quay.io/rh-ee-amiralle/quarkus-fruits-api
+  tag: "1.0.0"
+
+nameOverride: ""
+fullnameOverride: ""
+

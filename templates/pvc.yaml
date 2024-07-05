@@ -1,0 +1,10 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ template "helm-chart-ssc-pipeline.fullname" . }}-pvc
+spec:
+  accessModes:
+    - {{ .Values.storage.pvc.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.pvc.resources }}
