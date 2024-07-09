@@ -27,8 +27,9 @@ Trigger the pipeline
 ```bash
 $ tkn pipeline start ssc-pipeline \
     -p git-url=https://github.com/anmiralles/quarkus-fruits-api.git \
-    -p image=quay.io/rh-ee-amiralle/quarkus-fruits-api \
-    -w name=shared-workspace,claimName=java-pipeline-pvc \
+    -p image_repo=quay.io/rh-ee-amiralle/quarkus-fruits-api \
+    -p image_tag="1.0.0" \
+    -w name=shared-workspace,claimName=ssc-pipeline-pvc \
     -w name=dockerconfig,secret=quay-secret \
     --use-param-defaults
 ```
