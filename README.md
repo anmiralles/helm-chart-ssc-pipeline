@@ -1,7 +1,7 @@
 # README
 
 ## Introduction
-This project tries to automate image scanning and checking and also helm package linting using Tekton Pipelines.
+This project tries to automate image scanning and checking, sbom scanning and also helm package linting using Tekton Pipelines.
 
 ## Pre-requisites
 1. An Openshift cluster with ACS installed.

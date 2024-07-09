@@ -1,95 +1,93 @@
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: {{ include "helm-chart-ssc-pipeline.fullname" . }}
+  namespace: ci
 spec:
-  workspaces:
-  - name: shared-workspace
   params:
-  - name: GIT-URL
-    type: string
-  - name: GIT-REVISION
-    type: string
-    default: main
-  - name: IMAGE_REPO
-    type: string
-  - name: IMAGE_TAG
-    type: string
-  - name: CYCLONEDX_HOST_URL 
-    type: string
+    - name: IMAGE_REPO
+      type: string
+    - name: IMAGE_TAG
+      type: string
+    - name: GIT_REF
+      type: string
+    - name: GIT_REPO
+      type: string
+    - name: CYCLONEDX_HOST_URL
+      type: string
   tasks:
-  # 1. Git Clone
-    - name: git-clone
-      taskRef:
-        name: git-clone
-        kind: ClusterTask
-      workspaces:
-        - name: output
-          workspace: shared-workspace
+    - name: fetch-source
       params:
         - name: url
-          value: $(params.GIT-URL)
+          value: $(params.GIT_REPO)
         - name: revision
-          value: $(params.GIT-REVISION)
-  # 2. ACS image scan
-    - name: acs-image-scan  
-      params:  
-        - name: rox_central_endpoint
-          value: stackrox-endpoint
-        - name: rox_api_token
-          value: stackrox-secret
-        - name: image
-          value: $(params.IMAGE_REPO):$(params.IMAGE_TAG)
-        - name: insecure-skip-tls-verify  
+          value: $(params.GIT_REF)
+        - name: deleteExisting
           value: 'true'
-      runAfter:  
-        - git-clone
       taskRef:
-        kind: Task
-        name: acs-image-scan
-  # 3. ACS image check  
-    - name: acs-image-check  
-      params:  
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+    - name: acs-image-check
+      params:
         - name: rox_central_endpoint
           value: stackrox-endpoint
         - name: rox_api_token
           value: stackrox-secret
         - name: image
-          value: $(params.image)
-        - name: insecure-skip-tls-verify  
+          value: '$(params.IMAGE_REPO):$(params.IMAGE_TAG)'
+        - name: insecure-skip-tls-verify
           value: 'true'
       runAfter:
-        - git-clone
+        - fetch-source
       taskRef:
         kind: Task
         name: acs-image-check
-  # 4. SBOM generation  
-    - name: generate-sbom 
+    - name: acs-image-scan
       params:
-        - name: cyclonedxHostUrl
-          value: $(params.CYCLONEDX_HOST_URL)
+        - name: rox_central_endpoint
+          value: stackrox-endpoint
+        - name: rox_api_token
+          value: stackrox-secret
+        - name: image
+          value: '$(params.IMAGE_REPO):$(params.IMAGE_TAG)'
+        - name: insecure-skip-tls-verify
+          value: 'true'
+      runAfter:
+        - fetch-source
+      taskRef:
+        kind: Task
+        name: acs-image-scan
+    - name: grype-sbom-scan
+      params:
+        - name: ARGS
+          value: '$(params.IMAGE_REPO):$(params.IMAGE_TAG)'
       runAfter:
         - acs-image-scan
         - acs-image-check
       taskRef:
         kind: Task
-        name: generate-sbom
+        name: grype
       workspaces:
-        - name: repository
-          workspace: shared-workspace
-  # 5. kube linter
+        - name: source-dir
+          workspace: shared-data
     - name: kube-linter
-      runAfter:
-        - generate-sbom
-      taskRef:
-      name: kube-linter
-      workspaces:
-        - name: source
-          workspace: shared-workspace
       params:
         - name: manifest
           value: helm
         - name: default_option
           value: do-not-auto-add-defaults
         - name: includelist
-          value: "no-extensions-v1beta,default-service-account,no-readiness-probe"
+          value: 'no-extensions-v1beta,no-readiness-probe'
+      runAfter:
+        - grype-sbom-scan
+      taskRef:
+        kind: Task
+        name: kube-linter
+      workspaces:
+        - name: source
+          workspace: shared-data
+  workspaces:
+    - name: shared-data
